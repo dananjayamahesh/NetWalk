@@ -1,11 +1,12 @@
 #ifndef PROCESSOR_H_INCLUDED
 #define PROCESSOR_H_INCLUDED
-#include "../include/openflow.h"
+//#include "../include/openflow.h"
 //#include "packet_buffer.h"
-
+#include <stdint.h>
 typedef struct memory{
         //RAM CODE
 }memory_ram;
+
 typedef struct dummy_packet_buffer{
 
 }packet_buffer;
@@ -23,6 +24,7 @@ typedef struct encapsulation_module{
 //typedef uint8_t packet_buffer;
 //typedef uint8_t memory_ram;
 typedef struct processor{
+
       uint8_t id;
       //For Normal Pcaket Flow
       packet_buffer * packet_in;
