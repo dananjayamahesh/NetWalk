@@ -13,6 +13,8 @@ For CodeBlock Users: http://www.learncpp.com/cpp-tutorial/a3-using-libraries-wit
 #define PACKET_H_INCLUDED
 
 #include <pcap.h>
+#include "../packet-buffer/packet_buffer.h"
+
 #define LINE_LEN 16
 #define PACKET_COUNT 1
 
@@ -27,6 +29,7 @@ struct packet* get_next_packet(const pcap_t * fp);//Standard Method to Acceess t
 uint8_t * get_next_byte_array(const pcap_t * fp);//Standard Method to get packet as a byte array;
 int print_std_packet(const struct packet * pkt);
 void print_byte_array(const uint8_t * byte_array);
+void load_next_packet_to_the_buffer(pcap_t * fp,packet_buffer * pb, uint8_t * ingress_port , uint8_t * metadata);
 
 pcap_t* openfile(char * filename){
      char errbuf[PCAP_ERRBUF_SIZE];
@@ -246,6 +249,55 @@ void print_byte_array(const uint8_t * byte_array){
      }
 
 
+}
+
+
+void load_next_packet_to_the_buffer (pcap_t * fp,packet_buffer * pb, uint8_t * ingress_port , uint8_t * metadata){
+
+    int res;
+    struct pcap_pkthdr *header;
+    const u_char *pkt_data;
+    struct packet new_packet;
+    int i=0;
+    int packet_count =0;
+    while((res = pcap_next_ex( fp, &header, &pkt_data)) >= 0)
+    {
+        if(res != 0){
+
+            new_packet.header=header;
+            new_packet.pkt_data=pkt_data;
+            printf("%ld:%ld (%ld)\n", header->ts.tv_sec, header->ts.tv_usec, header->len);
+
+            // adding the first byte as the length. (plus 12, because of 4 Byte ingress port and 8 Byte Metadata
+            add_a_byte_to_the_packet_buffer(pb,header->len + 12);
+
+            // Adding the given 4 Byte ingress port
+            for(i=0;i<4;i++){
+                add_a_byte_to_the_packet_buffer(pb,ingress_port[i]);
+            }
+
+            // Adding the given 8 Byte Metadata
+            for(i=0;i<8;i++){
+                add_a_byte_to_the_packet_buffer(pb,metadata[i]);
+            }
+
+            // Adding other headers
+            for (i=1; (i < header->caplen + 1 ) ; i++)
+            {
+                add_a_byte_to_the_packet_buffer(pb,pkt_data[i-1]);
+                printf("%.2x ", pkt_data[i-1]);
+                if ( (i % LINE_LEN) == 0) printf("\n");
+            }
+                printf("\n\n");
+            break;
+           }else{
+               continue;
+           }
+    }
+      if(res == -1)
+    {
+        fprintf(stderr, "Error reading the packets: %s\n", pcap_geterr(fp));
+    }
 }
 
 #endif // PACKET_H_INCLUDED
