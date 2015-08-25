@@ -14,12 +14,16 @@ For CodeBlock Users: http://www.learncpp.com/cpp-tutorial/a3-using-libraries-wit
 #include <stdio.h>
 // NOTE: remember to include WPCAP and HAVE_REMOTE among your
 // preprocessor definitions.
-//
+
+#include "../pre-composer/pre_processing.h"
 #include <pcap.h>
 #include "packet.h"
 #define LINE_LEN 16
 #define PCAP_SRC_IF_STRING 0
 #define PCAP_OPENFLAG_PROMISCUOUS 0
+//#define MAX_PACKET_SIZE 100
+
+
 
 int main()
 {
@@ -36,4 +40,30 @@ int main()
     load_next_packet_to_the_buffer(fp,pb,ingress_port,metadata);
 
     print_buffer(pb);
+
+    uint8_t * pkt = malloc(MAX_PACKET_SIZE);
+
+    read_a_packet(pb,pkt);
+
+    print_packet(pkt);
+
+    uint8_t * match_field = malloc(45);
+
+    prepare_match_field(pkt,match_field);
+
+    int i=0;
+    int line_count=0;
+
+    printf("\n\n---------------Match Field-------------------- \n");
+
+    for(i=0;i<45;i++){
+
+        printf("%.2x ", match_field[i]);
+        line_count++;
+        if(line_count==LINE_LEN){
+            line_count=0;
+            printf("\n");
+        }
+    }
+
 }
