@@ -1,22 +1,22 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include "../packet-buffer/packet_buffer.h"
+#include "../packet/packet.h"
 enum packet_header_lengths{
-    ingress_port=32;
-    metadata=64;
-    mac_src = 48;
-    mac_dst = 48;
-    eth_typ = 16;
-    vlan_id	= 12;
-    vlan_priority =3;
-    mpls_label =20;
-    mpls_traffic_cls =3;
-    ipv4_src=32;
-    ipv4_dst=32;
-    ipv4_protocol=8;
-    ipv4_tos=6;
-    tcp_src=16;
-    tcp_dst=16;
+    ingress_port=32,
+    metadata=64,
+    mac_src = 48,
+    mac_dst = 48,
+    eth_typ = 16,
+    vlan_id	= 12,
+    vlan_priority =3,
+    mpls_label =20,
+    mpls_traffic_cls =3,
+    ipv4_src=32,
+    ipv4_dst=32,
+    ipv4_protocol=8,
+    ipv4_tos=6,
+    tcp_src=16,
+    tcp_dst=16,
 };
 
 static const enum packet_header_lengths pkt_headers[]={ingress_port,metadata,mac_src,mac_dst,eth_typ,vlan_id,vlan_priority,mpls_label,mpls_traffic_cls,ipv4_src,ipv4_dst,ipv4_protocol,ipv4_tos,tcp_src,tcp_dst};
@@ -39,7 +39,7 @@ void prepare_match_field(uint8_t * pkt , uint8_t * match_field){
     int i=0;
     int j=0;
     int mf_length=0;
-    int pkt_length=7;
+    int pkt_length=8;
     int no_of_bits_inserting =0;
     int additional_tag_length=0;
 
@@ -80,7 +80,7 @@ void prepare_match_field(uint8_t * pkt , uint8_t * match_field){
 
         additional_tag_length =0;
 
-    }else if(pkt[25]==129 && pkt[26]==0){
+    }else if(pkt[25]==129 && pkt[26]==0){ // If vlan tag is present
              int ipv4_header_length = pkt[33]*16 + pkt[34];
 
              pkt_length = pkt_length + no_of_bits_inserting + 16;
@@ -89,7 +89,7 @@ void prepare_match_field(uint8_t * pkt , uint8_t * match_field){
              // Setting vlan priority
              set_match_field_bits(pkt,match_field,pkt_length,mf_length,no_of_bits_inserting);
 
-             pkt_length = pkt_length + no_of_bits_inserting + 4;
+             pkt_length = pkt_length + no_of_bits_inserting + 1;
              mf_length = mf_length - vlan_id;
              no_of_bits_inserting = vlan_id;
              // Setting vlan id
@@ -100,7 +100,24 @@ void prepare_match_field(uint8_t * pkt , uint8_t * match_field){
             no_of_bits_inserting = mpls_label + mpls_traffic_cls;
             set_match_field_bits_as_zeros(match_field,mf_length,no_of_bits_inserting);
 
-            additional_tag_length = 32;
+            additional_tag_length = 0; // no bits in the vlan tag after vlan id
+
+        }else if(pkt[25]==136 && pkt[26]==71){  // MPLS tag is present
+
+            int ipv4_header_length = pkt[33]*16 + pkt[34];
+
+            mf_length = mf_length + no_of_bits_inserting;
+            no_of_bits_inserting = vlan_id + vlan_priority;
+            set_match_field_bits_as_zeros(match_field,mf_length,no_of_bits_inserting);
+
+            mf_length= mf_length + no_of_bits_inserting;
+            pkt_length = pkt_length + no_of_bits_inserting;
+            no_of_bits_inserting=mpls_label+ mpls_traffic_cls;
+            // Setting MPLS label and MPLS traffic class
+            set_match_field_bits(pkt,match_field,pkt_length,mf_length,no_of_bits_inserting);
+
+            additional_tag_length = 9; // There are 9 bits in the MPLS tag after the MPLS traffic class
+
         }
 
         pkt_length = pkt_length + additional_tag_length;
