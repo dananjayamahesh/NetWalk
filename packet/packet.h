@@ -31,6 +31,7 @@ int print_std_packet(const struct packet * pkt);
 void print_byte_array(const uint8_t * byte_array);
 void print_data_buffer(uint8_t data_buffer[]);
 int packet_to_data_buffer(struct packet* npacket,uint8_t  data_buffer[]);
+void load_next_packet_to_the_buffer(pcap_t * fp,packet_buffer * pb, uint8_t * ingress_port , uint8_t * metadata);
 
 
 enum protocol_length{
@@ -106,7 +107,7 @@ int packet_to_data_buffer(struct packet* npacket,uint8_t  data_buffer[]){
       printf("Packet Data Obtained\n");
 }
 
-void load_next_packet_to_the_buffer(pcap_t * fp,packet_buffer * pb, uint8_t * ingress_port , uint8_t * metadata);
+
 
 
 pcap_t* openfile(char * filename){

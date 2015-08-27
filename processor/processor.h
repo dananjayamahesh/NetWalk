@@ -1,9 +1,10 @@
 #ifndef PROCESSOR_H_INCLUDED
 #define PROCESSOR_H_INCLUDED
 //#include "../include/openflow.h"
-//#include "packet_buffer.h"
+//#include "../packet-buffer/packet_buffer.h"
 #include <stdint.h>
 #include "../processor/controller.h"
+#include "../packet/packet.h"
 
 typedef struct switch_stack{
     //layer 2 Info
@@ -19,9 +20,9 @@ typedef struct memory{
         //RAM CODE
 }memory_ram;
 
-typedef struct dummy_packet_buffer{
-
-}packet_buffer;
+//typedef struct storage{
+//        //RAM CODE
+//}packet_buffer;
 
 typedef struct decapsulation_module{
 

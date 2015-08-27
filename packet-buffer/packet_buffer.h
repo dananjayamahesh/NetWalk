@@ -10,7 +10,7 @@
 
 
 // Packet buffer structure
-typedef struct {
+typedef struct{
     uint8_t packet_buffer[PACKET_BUFFER_LEN];
     int packet_buffer_head;
     int packet_buffer_tail;
