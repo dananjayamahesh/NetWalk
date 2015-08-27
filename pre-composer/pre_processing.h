@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "../packet/packet.h"
+//ojhdsuhduh
 enum packet_header_lengths{
     ingress_port=32,
     metadata=64,
@@ -35,7 +36,6 @@ void set_match_field_bits_as_ones(uint8_t match_field[],int start_mf,int length)
 void prepare_match_field(uint8_t * pkt , uint8_t * match_field){
 
     int length = pkt[0];
-
     int i=0;
     int j=0;
     int mf_length=0;
@@ -79,7 +79,6 @@ void prepare_match_field(uint8_t * pkt , uint8_t * match_field){
         set_match_field_bits_as_zeros(match_field,mf_length,no_of_bits_inserting);
 
         additional_tag_length =0;
-
     }else if(pkt[25]==129 && pkt[26]==0){ // If vlan tag is present
              int ipv4_header_length = pkt[33]*16 + pkt[34];
 
@@ -99,6 +98,7 @@ void prepare_match_field(uint8_t * pkt , uint8_t * match_field){
             mf_length = mf_length + no_of_bits_inserting + vlan_priority;
             no_of_bits_inserting = mpls_label + mpls_traffic_cls;
             set_match_field_bits_as_zeros(match_field,mf_length,no_of_bits_inserting);
+
 
             additional_tag_length = 0; // no bits in the vlan tag after vlan id
 
