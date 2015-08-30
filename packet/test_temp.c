@@ -31,7 +31,7 @@ int main()
     uint8_t metadata1[8] = {1,2,3,4,5,6,7,8};
 
 
-    pcap_t* fp = openfile("E:/AAA FYP/Dump/dump1.pcap");
+    pcap_t* fp = openfile("../dump/dump1.pcap");
 
     //packet_buffer * pb = malloc(sizeof(packet_buffer));
 

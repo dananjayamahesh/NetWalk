@@ -10,7 +10,7 @@
 #define FLW_ENT_LEN  48
 #define NO_F_FLWS    20
 
-#define STR_ERR     -1
+#define STR_ERR     -10
 #define RDNDNT      -2
 #define TBL_FULL    -3
 
@@ -42,6 +42,9 @@ int search_flow(tcam_unit * flow_unit, uint8_t new_flow[], uint8_t action_set[])
 int add_new_flow_entry(tcam_unit * tcam, uint8_t mask[], uint8_t flow_entry[]);
 int add_new_entry(tcam_unit * flow_unit, uint8_t mask[], uint8_t flow_entry[], uint8_t action_set[], uint8_t flag[]);
 int modify_entry(tcam_unit * tcam, uint8_t match_fields[], uint8_t flag[], uint8_t new_values[]);
+int delete_flow_entry(tcam_unit * tcam, uint8_t flow_entry[]);
+
+int apply_action(tcam_unit * tcam, uint8_t new_flow[]);
 
 void write_new_mask(tcam_unit * tcam, uint8_t mask[]){
     reset_bit(mask, 357);
@@ -320,10 +323,10 @@ int search_tcam(tcam_unit * tcam, uint8_t new_flow[]){
 
 int search_flow(tcam_unit * flow_unit, uint8_t new_flow[], uint8_t action_set[]){
     int pos = search_tcam(flow_unit, new_flow);
-    //if action position is larger than the last written action entry,
-    //table structure is not proper
-    if(pos == STR_ERR)
-        return STR_ERR;
+    //pos = -10 indicates an error with the table structure
+    //pos = -1 indicates that no matching entry was found
+    if(pos < 0)
+        return pos;
     uint8_t i;
     for(i = 0; i < ACTN_ST_LEN; i++)
         action_set[i] = flow_unit -> action_table[pos * ACTN_ST_LEN + i];
@@ -344,6 +347,7 @@ int modify_entry(tcam_unit * tcam, uint8_t match_fields[], uint8_t flag[], uint8
     //at the worst case, new value will be 6 bytes (MAC Src and Dst)
     uint8_t val[6];
 
+    printf("\nChanges: ");
     //if matching packets are to be dropped, no values will be specified for the action set
     if(!read_bit(flag, 0)){
         //new value for MAC Src
@@ -492,6 +496,100 @@ int delete_flow_entry(tcam_unit * tcam, uint8_t flow_entry[]){
     delete_restructure_flow(tcam, flow_pos);
     delete_restructure_action(tcam, flow_pos);
     return flow_pos;
+}
+
+int apply_action(tcam_unit * tcam, uint8_t new_flow[] /*relevant packet also needed*/){
+    uint8_t action_set[ACTN_ST_LEN];
+    uint8_t action_flag[2];
+    int pos = search_flow(tcam, new_flow, action_set);
+    if(pos < 0){
+        printf("\nSend to policy controller");
+        return pos;
+    }
+    //get action flag
+    action_flag[0] = tcam -> flag_table[2 * pos];
+    action_flag[1] = tcam -> flag_table[2 * pos + 1];
+    printf("\nActions applied: ");
+    if(read_bit(action_flag, 0)){
+        printf("\nDrop Packet");
+        return 1;
+    }
+    uint8_t val[6], i;
+    if(read_bit(action_flag, 1)){
+        printf("\nMAC Src: ");
+        extract_field(action_set, 0, 0, 47, val);
+        for(i = 0; i < 6; i++)
+            printf("%d\t", val[i]);
+    }
+    if(read_bit(action_flag, 2)){
+        printf("\nMAC Dst: ");
+        extract_field(action_set, 0, 48, 95, val);
+        for(i = 0; i < 6; i++)
+            printf("%d\t", val[i]);
+    }
+    if(read_bit(action_flag, 3)){
+        printf("\nVLAN ID: ");
+        for(i = 0; i < 6; i++)
+            val[i] = 0;
+        extract_field(action_set, 0, 96, 107, val);
+        for(i = 0; i < 2; i++)
+            printf("%d\t", val[i]);
+    }
+    if(read_bit(action_flag, 4)){
+        printf("\nVLAN Priority: ");
+        for(i = 0; i < 6; i++)
+            val[i] = 0;
+        extract_field(action_set, 0, 108, 110, val);
+        printf("%d", val[0]);
+    }
+    if(read_bit(action_flag, 5)){
+        printf("\nMPLS Label: ");
+        for(i = 0; i < 6; i++)
+            val[i] = 0;
+        extract_field(action_set, 0, 111, 130, val);
+        for(i = 0; i < 3; i++)
+            printf("%d\t", val[i]);
+    }
+    if(read_bit(action_flag, 6)){
+        printf("\nMPLS Trff. Cls: ");
+        for(i = 0; i < 6; i++)
+            val[i] = 0;
+        extract_field(action_set, 0, 131, 133, val);
+        printf("%d", val[0]);
+    }
+    if(read_bit(action_flag, 7)){
+        printf("\nIPv4 Src: ");
+        extract_field(action_set, 0, 134, 165, val);
+        for(i = 0; i < 4; i++)
+            printf("%d\t", val[i]);
+    }
+    if(read_bit(action_flag, 8)){
+        printf("\nIPv4 Dst: ");
+        extract_field(action_set, 0, 166, 197, val);
+        for(i = 0; i < 4; i++)
+            printf("%d\t", val[i]);
+    }
+    if(read_bit(action_flag, 9)){
+        printf("\nIPv4 ToS: ");
+        val[0] = 0;
+        extract_field(action_set, 0, 198, 203, val);
+        printf("%d\t", val[0]);
+    }
+    if(read_bit(action_flag, 10)){
+        printf("\nTCP Src: ");
+        extract_field(action_set, 0, 204, 219, val);
+        for(i = 0; i < 2; i++)
+            printf("%d\t", val[i]);
+    }
+    if(read_bit(action_flag, 11)){
+        printf("\nTCP Dst: ");
+        extract_field(action_set, 0, 220, 235, val);
+        for(i = 0; i < 2; i++)
+            printf("%d\t", val[i]);
+    }
+    printf("\nOutput Port: %d", action_set[30]);
+    //maybe return output port?
+    return 1;
 }
 
 #endif

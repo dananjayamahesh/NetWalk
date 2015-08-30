@@ -15,6 +15,9 @@ int openflow_packet_process(processor * p1,uint8_t *data_buffer){
     printf("\n----------------------OpenFlow Packet Recieved-----------------------------\n");
 
    print_data_buffer(data_buffer);
+
+   //Extract the OpenFlow Header
+   //uint8_t openflow_data[8]={0x01,0x00,0x00,0x08,0xbb,0xd5,0x35,0x42};
    uint8_t openflow_data[8]={0x01,0x00,0x00,0x08,0xbb,0xd5,0x35,0x42};
       data_buffer=&openflow_data;
 
@@ -28,6 +31,7 @@ int openflow_packet_process(processor * p1,uint8_t *data_buffer){
 
    printf("Version : %.2x\nType: %.2x\nLength: %.4x",version,type,length);
    enum ofp_type t=type;
+Virtual
     switch(type){
 
 
