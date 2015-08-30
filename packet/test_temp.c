@@ -27,34 +27,67 @@ For CodeBlock Users: http://www.learncpp.com/cpp-tutorial/a3-using-libraries-wit
 
 int main()
 {
-    uint8_t ingress_port[4] = {1,2,3,4};
-    uint8_t metadata[8] = {1,2,3,4,5,6,7,8};
+    uint8_t ingress_port1[4] = {1,2,3,4};
+    uint8_t metadata1[8] = {1,2,3,4,5,6,7,8};
 
 
     pcap_t* fp = openfile("E:/AAA FYP/Dump/dump1.pcap");
 
-    packet_buffer * pb = malloc(sizeof(packet_buffer));
+    //packet_buffer * pb = malloc(sizeof(packet_buffer));
 
-    initialize_packet_buffer(pb);
+    pre_processor * pre_proc = malloc(sizeof(pre_processor));
 
-    load_next_packet_to_the_buffer(fp,pb,ingress_port,metadata);
+    initialize_preprocessor(pre_proc);
 
-    print_buffer(pb);
+    load_next_packet_to_the_packet_buffer(fp,pre_proc,ingress_port1,metadata1);
+
+    uint8_t ingress_port2[4] = {10,20,30,40};
+    uint8_t metadata2[8] = {10,20,30,40,50,60,70,80};
+    load_next_packet_to_the_packet_buffer(fp,pre_proc,ingress_port2,metadata2);
+
+    uint8_t ingress_port3[4] = {100,200,300,400};
+    uint8_t metadata3[8] = {100,200,300,400,500,600,700,800};
+    load_next_packet_to_the_packet_buffer(fp,pre_proc,ingress_port3,metadata3);
+
+    print_packet_buffer(pre_proc);
+
+    print_match_field_buffer(pre_proc);
+
+    prepare_match_field(pre_proc);
+
+    print_match_field_buffer(pre_proc);
 
     uint8_t * pkt = malloc(MAX_PACKET_SIZE);
+    uint8_t * mtch_fld = malloc(MTCH_FLD_LEN);
 
-    read_a_packet(pb,pkt);
+    return_match_field_and_packet(pre_proc,mtch_fld,pkt);
 
     print_packet(pkt);
 
-    uint8_t * match_field = malloc(45);
+    print_match_field(mtch_fld);
+
+    print_packet_buffer(pre_proc);
+
+    print_match_field_buffer(pre_proc);
+
+    prepare_match_field(pre_proc);
+
+    print_packet_buffer(pre_proc);
+
+    print_match_field_buffer(pre_proc);
+
+
+
+
+
+   /* uint8_t * match_field = malloc(45);
 
     prepare_match_field(pkt,match_field);
 
     int i=0;
     int line_count=0;
 
-    printf("\n\n---------------Match Field-------------------- \n");
+    printf("\n\n -------------------Match Field---------------------- \n");
 
     for(i=0;i<45;i++){
 
@@ -64,6 +97,6 @@ int main()
             line_count=0;
             printf("\n");
         }
-    }
+    } */
 
 }

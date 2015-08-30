@@ -14,6 +14,7 @@ For CodeBlock Users: http://www.learncpp.com/cpp-tutorial/a3-using-libraries-wit
 
 #include <pcap.h>
 #include "../packet-buffer/packet_buffer.h"
+#include "../packet-buffer/match_field_buffer.h"
 
 #define LINE_LEN 16
 #define PACKET_COUNT 1
@@ -29,85 +30,7 @@ struct packet* get_next_packet(const pcap_t * fp);//Standard Method to Acceess t
 uint8_t * get_next_byte_array(const pcap_t * fp);//Standard Method to get packet as a byte array;
 int print_std_packet(const struct packet * pkt);
 void print_byte_array(const uint8_t * byte_array);
-void print_data_buffer(uint8_t data_buffer[]);
-int packet_to_data_buffer(struct packet* npacket,uint8_t  data_buffer[]);
-
-
-enum protocol_length{
-      ETHERNET2=14,
-      IP=20,
-      TCP=20
-
-};
-enum openflow_field_flag{
-
-    INGRESS_PORT=1,//4
-    META_DATA=5,//8
-    HEAD=13,
-    DST_MAC_ADDR=HEAD,//6 bytes
-    SRC_MAC_ADDR=HEAD+6,//6
-    ETHER_TYPE=HEAD+12,//2
-    IP_VERSION=HEAD+14,//1
-    IP_DIFF_SERV=HEAD+15,//1
-    IP_LENGTH=HEAD+16,//2
-    IP_IDENTIFICATION=HEAD+18,////2
-    FRAGMENT_OFFSET=HEAD+20,//2
-    TTL=HEAD+22,//1
-    PROTOCOL=HEAD+23,//1
-    HEADER_CHECKSUM=HEAD+24,//2
-    SRC_IP_ADDR=HEAD+26,//4
-    DST_IP_ADDR=HEAD+30,//4
-    SRC_PORT=HEAD+34,//2
-    DST_PORT=HEAD+36,//2
-    SEQ_NUM=HEAD+38,//4
-    ACK_NUM=HEAD+42,//4
-    HEADER_LENGTH=HEAD+46,//1
-    TCP_FLAG=HEAD+47,//2
-    TCP_WIN_SIZE=HEAD+49,//2
-    TCP_CHECKSUM=HEAD+51,//2
-    OPENFLOW_INIT=HEAD+53,
-
-};
-
-
-void print_data_buffer(uint8_t data_buffer[]){
-    printf("\n -----------------------------Data Buffer---------------------------------\n\n");
-    int length=data_buffer[0];
-    int i=0;
-    for(i=1;i<length;i++){
-        printf("%.2x",data_buffer[i]);
-    }
-    printf("\n");
-
-}
-
-int packet_to_data_buffer(struct packet* npacket,uint8_t  data_buffer[]){
-   int i=0;
-   int length=npacket->header->caplen;
-   printf("Packet Length : %d\n",length);
-      data_buffer[0]=length+12+1;
-      printf("Data_Buffer : %d\n",data_buffer[0]);
-      data_buffer[1]=0x00;
-      data_buffer[2]=0x00;
-      data_buffer[3]=0x00;
-      data_buffer[4]=0x01;
-      printf("Ingress Port Tagged\n");
-      for(i=5;i<13;i++){
-       data_buffer[i]=0x00;
-      }
-      printf("Metadata Tagged \n");
-     uint8_t * ptr=npacket->pkt_data;
-      for(i=0;i<length;i++){
-         // printf("%.2x\n",*(data_buffer+i-1));
-
-           data_buffer[i+13]=*(ptr+i);
-
-      }
-      printf("Packet Data Obtained\n");
-}
-
 void load_next_packet_to_the_buffer(pcap_t * fp,packet_buffer * pb, uint8_t * ingress_port , uint8_t * metadata);
-
 
 pcap_t* openfile(char * filename){
      char errbuf[PCAP_ERRBUF_SIZE];

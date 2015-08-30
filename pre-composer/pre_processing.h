@@ -19,20 +19,50 @@ enum packet_header_lengths{
     tcp_dst=16,
 };
 
+typedef struct {
+    packet_buffer pb;
+    match_field_buffer mf;
+}pre_processor;
+
 static const enum packet_header_lengths pkt_headers[]={ingress_port,metadata,mac_src,mac_dst,eth_typ,vlan_id,vlan_priority,mpls_label,mpls_traffic_cls,ipv4_src,ipv4_dst,ipv4_protocol,ipv4_tos,tcp_src,tcp_dst};
 
-void prepare_match_field(uint8_t * pkt , uint8_t * match_field);
-void return_match_field_and_packet (packet_buffer * pb, uint8_t * return_mtch_fld,uint8_t * return_packet);
+void prepare_match_field(pre_processor * pp);
 void set_bit(uint8_t arr[], int pos);
 void reset_bit(uint8_t arr[], int pos);
 uint8_t read_bit(uint8_t arr[], int pos);
 void set_match_field_bits(uint8_t pkt[],uint8_t match_field[], int start_pkt ,int start_mf,int length);
 void set_match_field_bits_as_zeros(uint8_t match_field[],int start_mf,int length);
 void set_match_field_bits_as_ones(uint8_t match_field[],int start_mf,int length);
+void return_match_field_and_packet (pre_processor * pp, uint8_t * return_mtch_fld,uint8_t * return_packet);
+void initialize_preprocessor(pre_processor * pp);
+void load_next_packet_to_the_packet_buffer(pcap_t * fp,pre_processor * pp, uint8_t * ingress_port , uint8_t * metadata);
+void print_match_field_buffer(pre_processor * pp);
+void print_packet_buffer(pre_processor * pp);
+
+void initialize_preprocessor(pre_processor * pp){
+    initialize_packet_buffer(&pp->pb);
+    initialize_match_field_buffer(&pp->mf);
+}
+
+void load_next_packet_to_the_packet_buffer(pcap_t * fp,pre_processor * pp, uint8_t * ingress_port , uint8_t * metadata){
+    load_next_packet_to_the_buffer(fp,&pp->pb,ingress_port,metadata);
+}
+
+void print_packet_buffer(pre_processor * pp){
+    print_buffer(&pp->pb);
+}
+
+void print_match_field_buffer(pre_processor * pp){
+    print_mtch_field_buffer(&pp->mf);
+}
 
 
+void prepare_match_field(pre_processor * pp){
 
-void prepare_match_field(uint8_t * pkt , uint8_t * match_field){
+    uint8_t * match_field = malloc(MTCH_FLD_LEN);
+    uint8_t * pkt = malloc(MAX_PACKET_SIZE);
+
+    read_a_packet_for_preprocessing(pp,pkt);
 
     int length = pkt[0];
 
@@ -160,18 +190,19 @@ void prepare_match_field(uint8_t * pkt , uint8_t * match_field){
         // Adding TCP destination
         set_match_field_bits(pkt,match_field,pkt_length,mf_length,no_of_bits_inserting);
 
+        i =0;
+
+        for(i=0;i<45;i++){
+            add_a_byte_to_the_match_field_buffer(&pp->mf,match_field[i]);
+        }
+
 }
 
-void return_match_field_and_packet (packet_buffer * pb, uint8_t * return_mtch_fld,uint8_t * return_packet){
 
-    uint8_t * pkt = malloc(MAX_PACKET_SIZE);
-    read_a_packet(pb,pkt);
+void return_match_field_and_packet (pre_processor * pp, uint8_t * return_mtch_fld,uint8_t * return_packet){
 
-    int length = pkt[0];
-
-
-
-
+    read_a_match_field(&pp->mf,return_mtch_fld);
+    read_a_packet(&pp->pb,return_packet);
 
 }
 

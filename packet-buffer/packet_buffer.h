@@ -16,6 +16,9 @@ typedef struct {
     int packet_buffer_tail;
     int buffer_full_flag;
     int buffer_empty_flag;
+
+    // This is the head used when preparing macth field
+    int buffer_reading_head;
 }packet_buffer;
 
 //functions
@@ -26,6 +29,7 @@ uint8_t* read_a_packet_and_pass_a_pointer(packet_buffer * pb);
 void print_buffer(packet_buffer * pb);
 void read_and_print_packet(packet_buffer * pb);
 void print_packet(uint8_t * pkt);
+void read_a_packet_for_preprocessing(packet_buffer * pb,uint8_t * pk);
 
 // This will initialize the packet buffer
 void initialize_packet_buffer(packet_buffer * pb){
@@ -33,6 +37,8 @@ void initialize_packet_buffer(packet_buffer * pb){
 	pb->packet_buffer_tail = 0;
 	pb->buffer_full_flag = 0;
 	pb->buffer_empty_flag = 1;
+
+	pb->buffer_reading_head = 0;
 }
 
 //This function will insert a new byte to the buffer
@@ -69,6 +75,9 @@ uint8_t dqueue_from_packet_buffer(packet_buffer * pb){
 	if (pb->buffer_empty_flag == 1){
 		printf("Packet buffer is empty. Can't read from it");
 		return 0;
+	}else if(pb->buffer_reading_head==pb->packet_buffer_head){
+        printf("Packet is still not pre-processed. Can't deque");
+        return 0;
 	}
 	else{
 		//Reading the buffer from the head
@@ -107,8 +116,10 @@ uint8_t* read_a_packet_and_pass_a_pointer(packet_buffer * pb){
 	if (pb->buffer_empty_flag == 1){
 		printf("Packet buffer is empty. Can't read from it");
 		return 0;
-	}
-	else{
+	}else if(pb->buffer_reading_head==pb->packet_buffer_head){
+        printf("Packet is still not pre-processed. Can't deque");
+        return 0;
+	}else{
 		packet_length = dqueue_from_packet_buffer(pb);
 		uint8_t output_packet[packet_length];
         output_packet[0] = packet_length;
@@ -134,8 +145,10 @@ void read_a_packet(packet_buffer * pb,uint8_t * pk){
 	if (pb->buffer_empty_flag == 1){
 		printf("Packet buffer is empty. Can't read from it");
 		*pk = 0;
-	}
-	else{
+	}else if(pb->buffer_reading_head==pb->packet_buffer_head){
+        printf("Packet is still not pre-processed. Can't deque");
+        return 0;
+	}else{
 		packet_length = dqueue_from_packet_buffer(pb);
 		*pk = packet_length;
 		for (i = 1; i <= packet_length; i++){
@@ -232,3 +245,48 @@ void print_packet(uint8_t * pkt){
 
 }
 
+//This function will read and dequeue a byte from the buffer for pre processign
+uint8_t dqueue_from_packet_buffer_for_preprocessing(packet_buffer * pb){
+
+	uint8_t data;
+	if (pb->buffer_empty_flag == 1){
+		printf("Packet buffer is empty. Can't read from it");
+		return 0;
+	}else{
+		//Reading the buffer from the head
+		data = pb->packet_buffer[pb->buffer_reading_head];
+		pb->buffer_empty_flag = 0;
+
+		//calculating the new head
+		if (pb->buffer_reading_head == PACKET_BUFFER_LEN - 1){
+			pb->buffer_reading_head = 0;
+		}
+		else{
+			pb->buffer_reading_head = pb->buffer_reading_head + 1;
+		}
+
+		return data;
+	}
+}
+
+
+void read_a_packet_for_preprocessing(packet_buffer * pb,uint8_t * pk){
+
+
+	int packet_length = 0;
+	int i = 0;
+	int k=0;
+
+	if (pb->buffer_empty_flag == 1){
+		printf("Packet buffer is empty. Can't read from it");
+		*pk = 0;
+	}else{
+		packet_length = dqueue_from_packet_buffer_for_preprocessing(pb);
+		*pk = packet_length;
+		for (i = 1; i <= packet_length; i++){
+			*(pk+i) =  dqueue_from_packet_buffer_for_preprocessing(pb);
+		}
+		printf("\n");
+	}
+
+}
