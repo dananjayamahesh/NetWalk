@@ -18,7 +18,7 @@ int openflow_packet_process(processor * p1,uint8_t *data_buffer){
 
    //Extract the OpenFlow Header
    //uint8_t openflow_data[8]={0x01,0x00,0x00,0x08,0xbb,0xd5,0x35,0x42};
-   uint8_t openflow_data[8]={0x01,0x00,0x00,0x08,0xbb,0xd5,0x35,0x42};
+   uint8_t openflow_data[8]={0x01,0x0e,0x00,0x08,0xbb,0xd5,0x35,0x42};
       data_buffer=&openflow_data;
 
    int i=0;
@@ -29,9 +29,10 @@ int openflow_packet_process(processor * p1,uint8_t *data_buffer){
    uint16_t length=(*(data_buffer+i)*256)+*(data_buffer+i+1);
    i++;i++;
 
-   printf("Version : %.2x\nType: %.2x\nLength: %.4x",version,type,length);
+
+   printf("Version : %.2x\nType: %.2x\nLength: %.4x\n",version,type,length);
    enum ofp_type t=type;
-Virtual
+
     switch(type){
 
 
@@ -61,7 +62,10 @@ Virtual
     case OFPT_PACKET_OUT         :  printf("OpenFlow Packet Out Packet Out");
                                        // openflow_packet_out_process();
                                         break;
-    case OFPT_FLOW_MOD           :  printf("OpenFLow Flow Mod\n");  break;
+    case OFPT_FLOW_MOD           :  printf("\n-----------------OpenFLow Flow Mod Packet----------------------\n");
+
+                                        openflow_flow_mod_process(p1,data_buffer);
+                                        break;
     case OFPT_GROUP_MOD         :    break;
     case OFPT_PORT_MOD           :    break;
     case OFPT_TABLE_MOD         :    break;
@@ -309,4 +313,31 @@ length=i-5;
 
 }
 
+
+
+int openflow_flow_mod_process(processor *p,uint8_t *data_buffer){
+
+          printf("\n++Processing OpenFlow Mod Packet++\n");
+          //Dummy
+          uint8_t openflow_data[8]={0x01,0x0e,0x00,0x50,0xbb,0xd5,0x35,0x42};
+      data_buffer=&openflow_data;
+   int i=0;
+
+//write_length(&length,&packet_in_data_buffer[i]);
+      print_ofpt_version(&data_buffer[i]);
+      i++;
+       print_ofpt_type(&data_buffer[i]);
+       i++;
+        print_ofpt_length(&data_buffer[i]);
+        i=i+2;
+        print_ofpt_xid(&data_buffer[i]);
+        i=i+4;
+
+
+
+
+
+
+
+}
 #endif // OPENFLOW_PROCESS_H_INCLUDED

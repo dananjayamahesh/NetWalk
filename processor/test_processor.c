@@ -8,8 +8,6 @@
 
 //Optional Function till we develop packet_buffer as seperate module
 
-
-
 int main()
 {
     printf("------------------------NetWalk Switch---------------------------------\n");
@@ -117,7 +115,7 @@ switchx s1;
     else{
         //call for OpenFlow
          //Table Missed Packet to be buffered and send notification to controller
-         table_missed_packet_process(&p1,data_buffer);
+           table_missed_packet_process(&p1,data_buffer);
 
     }
      //Then
