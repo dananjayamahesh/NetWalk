@@ -170,7 +170,7 @@ int search_within_mask_group(tcam_unit * tcam, uint8_t mask[], uint8_t flow_entr
     int i = mask_group_start;
     uint8_t j, k, l;
     k = 0;
-    //until the next group starts or all the end of the flow table is reached
+    //until the next group starts or the end of the flow table is reached
     do{
         //match each entry (with mask) with the new entry, to see whether a duplicate entry exists
         for(l = 0; l < MTCH_FLD_LEN; l++){
@@ -240,7 +240,7 @@ int add_new_flow_entry(tcam_unit * tcam, uint8_t mask[], uint8_t flow_entry[]){
             //search whether the flow already exists inside that group
             //if OK, 'pos' is the start of the next mask group
             pos = search_within_mask_group(tcam, mask, flow_entry, mask_group_start);
-            //if it does, return
+            //if it does exist, return
             if(pos == RDNDNT)
                 return RDNDNT;
             //else add the flow to the end(?) of that group
