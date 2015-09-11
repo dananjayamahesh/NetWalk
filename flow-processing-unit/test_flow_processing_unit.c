@@ -71,21 +71,30 @@ int main(){
     output_flags(&match_unit);
 
     int pos = delete_flow_entry(&match_unit, dummy_flow_entry);
-    printf("%d", pos);
+    printf("%d\n", pos);
     output_all_actions(&match_unit);
     output_all_flow_entries(&match_unit);
     output_flags(&match_unit);
 
-    /*uint8_t dummy_action_set[ACTN_ST_LEN];
-    //search Mask 1 entry 2
-    int pos = search_flow(&match_unit, dummy_flow_entry, dummy_action_set);
+    uint8_t dummy_action_set[ACTN_ST_LEN];
+    //search Mask 1 entry 1
+    //this flow entry has been deleted
+    pos = search_flow(&match_unit, dummy_flow_entry, dummy_action_set);
     printf("%d %d\n", pos, get_mask_pos(&match_unit, pos));
-    write_output(dummy_action_set);
+    if(pos != -1)
+        write_output(dummy_action_set);
 
     //search mask 2 entry 3
     pos = search_flow(&match_unit, dummy_flow_entry_2, dummy_action_set);
     printf("%d %d\n", pos, get_mask_pos(&match_unit, pos));
-    write_output(dummy_action_set);*/
+    if(pos != -1)
+        write_output(dummy_action_set);
+
+    //search mask 2 entry 2
+    pos = search_flow(&match_unit, dummy_flow_entry_3, dummy_action_set);
+    printf("%d %d\n", pos, get_mask_pos(&match_unit, pos));
+    if(pos != -1)
+        write_output(dummy_action_set);
 
     /*uint8_t flag_modification[2];
     flag_modification[0] = 64;
