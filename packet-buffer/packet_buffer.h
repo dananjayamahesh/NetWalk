@@ -15,7 +15,6 @@ typedef struct{
     int packet_buffer_tail;
     int buffer_full_flag;
     int buffer_empty_flag;
-
     // This is the head used when preparing macth field
     int buffer_reading_head;
 }packet_buffer;
@@ -23,6 +22,8 @@ typedef struct{
 //functions
 void initialize_packet_buffer(packet_buffer * pb);
 void add_a_byte_to_the_packet_buffer(packet_buffer * pb,uint8_t byte);
+//void add_a_packet_to_the_packet_buffer(packet_buffer * pb,packet *pkt);
+
 uint8_t dqueue_from_packet_buffer(packet_buffer * pb);
 uint8_t* read_a_packet_and_pass_a_pointer(packet_buffer * pb);
 void print_buffer(packet_buffer * pb);
@@ -67,6 +68,10 @@ void add_a_byte_to_the_packet_buffer(packet_buffer * pb,uint8_t byte){
 }
 
 
+//void add_a_packet_to_the_packet_buffer(packet_buffer * pb,packet *pkt){
+
+
+//}
 //This function will read and dequeue a byte from the buffer
 uint8_t dqueue_from_packet_buffer(packet_buffer * pb){
 

@@ -15,7 +15,7 @@ int openflow_packet_process(processor * p1,uint8_t *data_buffer){
     printf("\n----------------------OpenFlow Packet Recieved-----------------------------\n");
 
    print_data_buffer(data_buffer);
-
+   printf("\n+++ Extracting OpenFlow Header +++\n");
    //Extract the OpenFlow Header
    //uint8_t openflow_data[8]={0x01,0x00,0x00,0x08,0xbb,0xd5,0x35,0x42};
    uint8_t openflow_data[8]={0x01,0x0e,0x00,0x08,0xbb,0xd5,0x35,0x42};
@@ -121,8 +121,8 @@ int table_missed_packet_process(processor *p1,uint8_t *data_buffer){
        printf("\n-----------------------Table Missed Other Packet----------------------\n");
        //Buffer Id,Store to access them back
        print_mac_addr(&data_buffer[DST_MAC_ADDR]);
-        print_ip_addr(&data_buffer[DST_IP_ADDR]);
-                print_port(&data_buffer[DST_PORT]);
+        print_ip_addr(&data_buffer[IP_DST_ADDR]);
+                print_port(&data_buffer[TCP_DST_PORT]);
 
                 //int buff_id=make_buffer_packet(data_buffer);//Tagging Buffer ID Information
                 //1 Byte: for Bypass Openflow Data Plane
@@ -148,7 +148,7 @@ int generate_openflow_packet_in(processor * p1,uint8_t *data_buffer, uint8_t *pa
      switchx s=p1->swt[0];
      print_switch(&s);
      print_controller(p1->con);
-printf("\n++Generating Packet-In Message++\n");
+   printf("\n++Generating Packet-In Message++\n");
    uint8_t type_ip[2]={0x08,0x00};
    uint8_t ip_version=0x45;
     uint8_t ip_diff_serv=0x00;
@@ -157,6 +157,9 @@ printf("\n++Generating Packet-In Message++\n");
     uint8_t ip_flag=0x40;
     uint8_t ip_fragment_offset=0x00;
     uint8_t ip_ttl=0x80;
+
+
+    uint8_t ip_protocol=0x00;
     uint8_t ip_checksum[2]={0x00,0x00};
     uint8_t tcp_seq[4]={0x00,0x00,0x00,0x01};
     uint8_t tcp_ack[4]={0x00,0x00,0x00,0x00};
@@ -218,6 +221,13 @@ printf("\n++Generating Packet-In Message++\n");
     write_ip_ttl(&ip_ttl,&packet_in_data_buffer[i]);
       print_ip_ttl(&packet_in_data_buffer[i]);
       i=i+1;
+
+
+
+ write_ip_protocol(&ip_protocol,&packet_in_data_buffer[i]);
+      print_ip_protocol(&packet_in_data_buffer[i]);
+      i=i+1;
+
 
         write_ip_checksum(&ip_checksum,&packet_in_data_buffer[i]);
       print_ip_checksum(&packet_in_data_buffer[i]);
@@ -319,7 +329,7 @@ int openflow_flow_mod_process(processor *p,uint8_t *data_buffer){
 
           printf("\n++Processing OpenFlow Mod Packet++\n");
           //Dummy
-          uint8_t openflow_data[8]={0x01,0x0e,0x00,0x50,0xbb,0xd5,0x35,0x42};
+    uint8_t openflow_data[80]={0x01,0x0e,0x00,0x50,0xbb,0xd5,0x35,0x42 ,0x00,0x00,0x00,0x00,0x00,0x02,0x0a,0xf9,0xaf,0xca,0xd1,0xa4,0x6a,0x6b,0x85,0x74,0x6d,0xcf,0xff,0xff,0x00,0x00,0x08,0x06,0x00,0x02,0x00,0x00,0x0a,0x00,0x00,0x02,0x0a,0x00,0x00,0x01,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x3c,  0x00,0x00,0x00,0x00,0x00,0x00,0x01,0x01,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x08, 0x00,0x01,0x00,0x00 };
       data_buffer=&openflow_data;
    int i=0;
 
@@ -333,11 +343,92 @@ int openflow_flow_mod_process(processor *p,uint8_t *data_buffer){
         print_ofpt_xid(&data_buffer[i]);
         i=i+4;
 
+       print_ofpt_wildcard(&data_buffer[i]);
+        i=i+4;
+
+       print_ofpt_in_port(&data_buffer[i]);
+        i=i+2;
+
+       print_mac_addr(&data_buffer[i]);
+       i=i+6;
+
+        print_mac_addr(&data_buffer[i]);
+       i=i+6;
+
+        print_vlan_vid(&data_buffer[i]);
+         i=i+2;
+
+         print_vlan_pcp(&data_buffer[i]);
+         i=i+1;
+
+         i=i+1;
 
 
+          print_ether_type(&data_buffer[i]);
+         i=i+2;
+
+            print_ip_diff_serv(&data_buffer[i]);
+          i=i+1;
+
+           print_ip_protocol (&data_buffer[i]);
+          i=i+1;
+
+          i=i+2;
+
+        print_ip_addr(&data_buffer[i]);
+          i=i+4;
+
+            print_ip_addr(&data_buffer[i]);
+          i=i+4;
+
+          print_tcp_port(&data_buffer[i]);
+          i=i+2;
 
 
+          print_tcp_port(&data_buffer[i]);
+          i=i+2;
 
+          print_ofpt_cookie(&data_buffer[i]);
+          i=i+8;
+
+
+          //When Ever Having a Cookie Mask
+
+  //printf("Command\n");
+          print_oftp_command(&data_buffer[i]);
+          i=i+2;
+
+
+          print_oftp_idle_timeout(&data_buffer[i]);
+          i=i+2;
+
+          print_oftp_hard_timeout(&data_buffer[i]);
+                    i=i+2;
+
+         print_oftp_priority(&data_buffer[i]);
+         i=i+2;
+
+
+         print_oftp_buffer_id(&data_buffer[i]);
+         i=i+4;
+
+        print_oftp_out_port(&data_buffer[i]);
+        i=i+2;
+
+       printf_oftp_flag(&data_buffer[i]);
+       i=i+2;
+
+       //Actions Output
+       print_oftp_action_type(&data_buffer[i]);
+       i=i+2;
+
+       print_oftp_length(&data_buffer[i]);
+       i=i+2;
+        print_oftp_action_port(&data_buffer[i]);
+        i=i+2;
+
+        print_oftp_max_length(&data_buffer[i]);
+        i=i+2;
 
 }
 #endif // OPENFLOW_PROCESS_H_INCLUDED

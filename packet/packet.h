@@ -32,6 +32,12 @@ int print_std_packet(const struct packet * pkt);
 void print_byte_array(const uint8_t * byte_array);
 void load_next_packet_to_the_buffer(pcap_t * fp,packet_buffer * pb, uint8_t * ingress_port , uint8_t * metadata);
 
+
+void load_a_packet_to_the_packet_buffer(packet *pkt,packet_buffer * pb, uint8_t * ingress_port , uint8_t * metadata);
+void print_data_buffer(uint8_t * data_buffer);
+
+
+
 pcap_t* openfile(char * filename){
      char errbuf[PCAP_ERRBUF_SIZE];
      pcap_t * fp = pcap_open_offline(filename, errbuf);//Use any packet dump
@@ -40,7 +46,7 @@ pcap_t* openfile(char * filename){
         printf("Error: Cannot Locate PCAP file\n");
         return 0;
     }else{
-        printf("Pcap File Located\n");
+        printf("\n+++ PCAP File Located +++\n");
 
     }
     return fp;
@@ -301,4 +307,56 @@ void load_next_packet_to_the_buffer (pcap_t * fp,packet_buffer * pb, uint8_t * i
     }
 }
 
+
+void load_a_packet_to_the_packet_buffer (packet *pkt,packet_buffer * pb, uint8_t * ingress_port , uint8_t * metadata){
+
+    int i=0;
+            printf("%ld:%ld (%ld)\n", pkt->header->ts.tv_sec, pkt->header->ts.tv_usec, pkt->header->len);
+            // adding the first byte as the length. (plus 12, because of 4 Byte ingress port and 8 Byte Metadata
+            add_a_byte_to_the_packet_buffer(pb,pkt->header->len + 12);
+            printf("Length : %.2x \n Total Length %.2x\n",pkt->header->len,pkt->header->len +12);
+
+            // Adding the given 4 Byte ingress port
+            for(i=0;i<4;i++){
+                add_a_byte_to_the_packet_buffer(pb,ingress_port[i]);
+            }
+
+            // Adding the given 8 Byte Metadata
+            for(i=0;i<8;i++){
+                add_a_byte_to_the_packet_buffer(pb,metadata[i]);
+            }
+
+            // Adding other headers
+            for (i=1; (i < pkt->header->caplen + 1 ) ; i++)
+            {
+                add_a_byte_to_the_packet_buffer(pb,pkt->pkt_data[i-1]);
+                printf("%.2x ", pkt->pkt_data[i-1]);
+                if ( (i % LINE_LEN) == 0) printf("\n");
+            }
+                printf("\n\n");
+
+
+
+}
+
+
+
+void print_data_buffer(uint8_t * data_buffer){
+
+        int i=0;
+        int length=data_buffer[0];
+
+        for(i=1;i<length+1;i++){
+         printf("%.2x ",data_buffer[i]);
+         if(i%16==0){
+             printf("\n");
+         }
+
+
+        }
+        printf("\n");
+
+
+
+}
 #endif // PACKET_H_INCLUDED

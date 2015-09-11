@@ -24,6 +24,44 @@ typedef struct memory{
 //        //RAM CODE
 //}packet_buffer;
 
+enum openflow_field_flag{
+    LENGTH=0,
+    INGRESS_PORT=1,
+    METADATA=5,//8
+    HEAD=13,
+    DST_MAC_ADDR=HEAD,//6
+    SRC_MAC_ADDR=HEAD+6,//6
+    ETHER_TYPE=HEAD+12,//2
+    IP_VERSION=HEAD+14,//1
+    IP_DIFF_SERV=HEAD+15,//1
+    IP_TOTAL_LENGTH=HEAD+16,//2
+    IP_ID=HEAD+18,//2
+    IP_FLAG=HEAD+20,//1
+    IP_FRAGMENT=HEAD+21,//1
+    IP_TTL=HEAD+22,//1
+    IP_PROTOCOL=HEAD+23,//1
+    IP_CHECKSUM=HEAD+24,//2
+    IP_SRC_IP=HEAD+26,//4
+    IP_DST_ADDR=HEAD+30,//4
+    TCP_SRC_PORT=HEAD+34,//2
+    TCP_DST_PORT=HEAD+36,//2
+    TCP_SEQ=HEAD+38,//4
+    TCP_ACK=HEAD+42,//4
+    TCP_HEADER_LEN=HEAD+46,//1
+    TCP_FLAG=HEAD+47,//2
+    TCP_WINDOW_SIZE=HEAD+49,//2
+    TCP_CHECKSUM=HEAD+51,//2
+
+
+
+
+
+
+
+
+};
+
+
 typedef struct decapsulation_module{
 
 
@@ -56,6 +94,14 @@ typedef struct processor{
 
 
 }processor;
+
+int compare_mac_addr(uint8_t * mac1,uint8_t *mac2);
+void print_mac_addr(uint8_t * mac_addr);
+int compare_ip_addr(uint8_t * ip1,uint8_t *ip2);
+void print_ip_addr(uint8_t * ip_addr);
+
+
+void print_field_of_n(uint8_t *field,uint8_t * n);
 
 int processor_start(processor * p,uint8_t *id,packet_buffer * packet_in,packet_buffer *packet_out,packet_buffer * of_data_in,packet_buffer* of_data_out,memory_ram * ram){
        if(p == NULL){
@@ -101,6 +147,10 @@ void processor_print(processor *p){
 
 
 int compare_mac_addr(uint8_t * mac1,uint8_t *mac2){
+
+    printf("\n+++ Comapring MAC Address +++\n");
+    print_mac_addr(mac1);
+     print_mac_addr(mac2);
     int i =0;
     int is_matched=1;
     printf("Start MAC Comparison\n");
@@ -112,11 +162,17 @@ int compare_mac_addr(uint8_t * mac1,uint8_t *mac2){
            break;
          }
     }
+    if(is_matched==1){
+    printf("+++ MAC addresses Matched +++\n");
+    }
     return is_matched;
 
 }
 
 int compare_ip_addr(uint8_t * ip1,uint8_t *ip2){
+    printf("\n+++ Comparing IP Addresses +++\n");
+    print_ip_addr(ip1);
+    print_ip_addr(ip2);
     int i =0;
     int is_matched=1;
     printf("Start IP Comparison\n");
@@ -128,9 +184,35 @@ int compare_ip_addr(uint8_t * ip1,uint8_t *ip2){
            break;
          }
     }
+    if(is_matched==1){
+    printf("+++ IP Addresses Matched +++\n");
+    }
     return is_matched;
 
 }
+
+int compare_field_of_n(uint8_t * field1,uint8_t *field2,uint8_t * n){
+    printf("\n+++ Comparing Field of N +++\n");
+    print_field_of_n(field1,n);
+    print_field_of_n(field2,n);
+    int i =0;
+    int is_matched=1;
+    printf("Start IP Comparison\n");
+    // printf("%.2x %.2x\n",*ip1,*ip2);
+    for(i=0;i<(*n);i++){
+       //printf("IP : %.2x   %.2x",*(ip1+i),*(ip2+i));
+         if(*(field1+i) != *(field2+i)){
+           is_matched=0;
+           break;
+         }
+    }
+    if(is_matched==1){
+    printf("+++ Field Matched +++\n");
+    }
+    return is_matched;
+
+}
+
 
 int compare_tcp_port(uint8_t * port1,uint8_t *port2){
 
@@ -147,6 +229,14 @@ int compare_tcp_port(uint8_t * port1,uint8_t *port2){
     }
     return is_matched;
 
+}
+
+void print_field_of_n(uint8_t *field,uint8_t * n){
+    int i=0;
+    for(i=0;i<(*n);i++){
+          printf("%d.",*(field+i));
+    }
+    printf("\n");
 }
 
 void print_ip_addr(uint8_t *ip_addr){
@@ -189,6 +279,23 @@ void  print_ether_type(uint8_t *ether_type){
     printf("\n");
 }
 
+
+void  print_vlan_vid(uint8_t *vid){
+    int i=0;
+    for(i=0;i<2;i++){
+          printf("%.2x",*(vid+i));
+    }
+    printf("\n");
+}
+
+
+void  print_vlan_pcp(uint8_t *pcp){
+    int i=0;
+    for(i=0;i<1;i++){
+          printf("%.2x",*(pcp+i));
+    }
+    printf("\n");
+}
 void  print_length(uint8_t *length){
     int i=0;
     for(i=0;i<1;i++){
@@ -196,6 +303,9 @@ void  print_length(uint8_t *length){
     }
     printf("\n");
 }
+
+
+
 
 void  print_ip_version(uint8_t *version){
     int i=0;
@@ -252,6 +362,14 @@ void print_ip_ttl(uint8_t *ip_ttl){
     printf("\n");
 }
 
+
+void print_ip_protocol(uint8_t *ip_protocol){
+     int i=0;
+    for(i=0;i<1;i++){
+          printf("%.2x",*(ip_protocol+i));
+    }
+    printf("\n");
+}
 void print_ip_checksum(uint8_t *ip_checksum){
      int i=0;
     for(i=0;i<2;i++){
@@ -372,6 +490,14 @@ void print_ofpt_in_port(uint8_t *ofpt_in_port){
     printf("\n");
 }
 
+
+void print_ofpt_wildcard(uint8_t *ofpt_wildcard){
+     int i=0;
+    for(i=0;i<4;i++){
+          printf("%.2x",*(ofpt_wildcard+i));
+    }
+    printf("\n");
+}
 void print_ofpt_reason(uint8_t *ofpt_reason){
      int i=0;
     for(i=0;i<1;i++){
@@ -380,6 +506,118 @@ void print_ofpt_reason(uint8_t *ofpt_reason){
     printf("\n");
 }
 
+
+
+
+
+ void print_ofpt_cookie(uint8_t *cookie){
+             int i=0;
+    for(i=0;i<8;i++){
+          printf("%.2x",*(cookie+i));
+    }
+    printf("\n");
+ }
+
+
+   void  print_oftp_command(uint8_t *command){
+             int i=0;
+    for(i=0;i<2;i++){
+          printf("%.2x",*(command+i));
+    }
+    printf("\n");
+ }
+
+
+
+     void  print_oftp_idle_timeout(uint8_t *idle_timeout){
+             int i=0;
+    for(i=0;i<2;i++){
+          printf("%.2x",*(idle_timeout+i));
+    }
+    printf("\n");
+ }
+
+
+      void    print_oftp_hard_timeout(uint8_t *hard_timeout){
+             int i=0;
+    for(i=0;i<2;i++){
+          printf("%.2x",*(hard_timeout+i));
+    }
+    printf("\n");
+ }
+
+
+     void print_oftp_priority(uint8_t *priority){
+             int i=0;
+    for(i=0;i<2;i++){
+          printf("%.2x",*(priority+i));
+    }
+    printf("\n");
+ }
+
+
+
+     void    print_oftp_buffer_id(uint8_t *buffer_id){
+             int i=0;
+    for(i=0;i<4;i++){
+          printf("%.2x",*(buffer_id+i));
+    }
+    printf("\n");
+ }
+
+
+
+    void  print_oftp_out_port(uint8_t *out_port){
+             int i=0;
+    for(i=0;i<2;i++){
+          printf("%.2x",*(out_port+i));
+    }
+    printf("\n");
+ }
+
+
+
+   void  printf_oftp_flag(uint8_t *flag){
+             int i=0;
+    for(i=0;i<2;i++){
+          printf("%.2x",*(flag+i));
+    }
+    printf("\n");
+ }
+
+
+    void  print_oftp_action_type(uint8_t *action_type){
+             int i=0;
+    for(i=0;i<2;i++){
+          printf("%.2x",*(action_type+i));
+    }
+    printf("\n");
+ }
+
+
+     void  print_oftp_length(uint8_t *length){
+             int i=0;
+    for(i=0;i<2;i++){
+          printf("%.2x",*(length+i));
+    }
+    printf("\n");
+ }
+
+     void   print_oftp_action_port(uint8_t *action_port){
+             int i=0;
+    for(i=0;i<2;i++){
+          printf("%.2x",*(action_port+i));
+    }
+    printf("\n");
+ }
+
+    void print_oftp_max_length(uint8_t *max_length){
+             int i=0;
+    for(i=0;i<2;i++){
+          printf("%.2x",*(max_length+i));
+    }
+    printf("\n");
+ }
 
 
 
@@ -491,6 +729,15 @@ int write_ip_ttl(uint8_t * ip_ttl,uint8_t * ip_ttl_n){
     int i=0;
     for(i=0;i<1;i++){
          *(ip_ttl_n+i)=*(ip_ttl+i);
+    }
+
+ return 1;
+}
+
+int write_ip_protocol(uint8_t * ip_protocol,uint8_t * ip_protocol_n){
+    int i=0;
+    for(i=0;i<1;i++){
+         *(ip_protocol_n+i)=*(ip_protocol+i);
     }
 
  return 1;
@@ -655,6 +902,18 @@ int write_ofpt_reason(uint8_t * ofpt_reason,uint8_t * ofpt_reason_n){
 
  return 1;
 }
+
+
+int write_field_of_n(uint8_t * field,uint8_t * field_n,uint8_t * n){
+    int i=0;
+    for(i=0;i<(*n);i++){
+         *(field_n+i)=*(field+i);
+    }
+
+ return 1;
+}
+
+
 void print_controller(controller* c){
 
      if(c == NULL){

@@ -5,7 +5,6 @@
 #include "../include/openflow.h"
 #include "openflow_process.h"
 //#include "../packet-buffer/packet_buffer.h"
-
 //Optional Function till we develop packet_buffer as seperate module
 
 int main()
@@ -18,9 +17,8 @@ switchx s1;
 //    uint8_t switch_ip_addr[4]={0x4a,0x79,0x8d,0x02};//{0xc0,0xa8,0x01,0x02};
 //    uint8_t switch_port[2]={0x00,0x02};//{0x19,0xfd};
 
-
-  uint8_t switch_mac_addr[6]={0x90,0x61,0x0c,0x0f,0x04,0xe6};
-    uint8_t switch_ip_addr[4]={0x4a,0x79,0x8d,0x55};//{0xc0,0xa8,0x01,0x02};
+    uint8_t switch_mac_addr[6]={0x90,0x61,0x0c,0x0f,0x04,0x01};
+    uint8_t switch_ip_addr[4]={0x4a,0x79,0x8d,0x01};//{0xc0,0xa8,0x01,0x02};
     uint8_t switch_port[2]={0x00,0x02};//{0x19,0xfd};
 
 
@@ -107,8 +105,8 @@ switchx s1;
 
     printf("\n");
      //printf("%.2x ",data_buffer[ff]);
-     printf("%.2x %.2x\n",data_buffer[ff],*switch_mac_addr);
- ff=DST_MAC_ADDR;
+    // printf("%.2x %.2x\n",data_buffer[ff],*switch_mac_addr);
+     ff=DST_MAC_ADDR;
      int mac_addr_matched = compare_mac_addr(&data_buffer[ff],switch_mac_addr);
      //printf("Mac Address Mathced: %d\n",mac_addr_matched);
 
