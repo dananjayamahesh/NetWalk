@@ -15,6 +15,7 @@ void replace_field(uint8_t table[], int entry_no, int strt_bit, int end_bit, uin
 //extracts value of a field from a given action; either one saved in the action table, or
 //new value set given with the modify entry command
 //start and end bit positions are for a single entry, not the table
+//that is, start and end bit positions are given respective to the entry of interest
 //they are inclusive
 void extract_field(uint8_t table[], int entry_no, int strt_bit, int end_bit, uint8_t val[]){
     int i;
@@ -26,6 +27,8 @@ void extract_field(uint8_t table[], int entry_no, int strt_bit, int end_bit, uin
     }
 }
 
+//replaces a field of an entry in table[] with a value given in val[]
+//start and end bit positions carry the same meaning as in 'extract_field' function
 void replace_field(uint8_t table[], int entry_no, int strt_bit, int end_bit, uint8_t val[]){
     int i;
     for(i = strt_bit; i <= end_bit; i++){
