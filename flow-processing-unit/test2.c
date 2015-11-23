@@ -15,11 +15,12 @@ void output_flags(tcam_unit * tcam);
 
 int main(){
 
+    init();
+
     uint8_t dummy_mask[MTCH_FLD_LEN];
     uint8_t dummy_flow_entry[MTCH_FLD_LEN + 1];
     uint8_t dummy_action[ACTN_ST_LEN];
     uint8_t dummy_flag[2];
-    int mask_pos[2];
     tcam_unit match_unit;
     match_unit.mask_tail = 0;
     match_unit.flow_tail = 0;
@@ -71,33 +72,14 @@ int main(){
     output_all_flow_entries(&match_unit);
     output_flags(&match_unit);
 
+    //mask 1 flow 1 deleted
     int pos = delete_flow_entry(&match_unit, dummy_flow_entry);
     printf("%d\n", pos);
     output_all_actions(&match_unit);
     output_all_flow_entries(&match_unit);
     output_flags(&match_unit);
 
-    uint8_t dummy_action_set[ACTN_ST_LEN];
-    //search Mask 1 entry 1
-    //this flow entry has been deleted
-    pos = search_flow(&match_unit, dummy_flow_entry, dummy_action_set, mask_pos);
-    printf("%d %d\n", pos, get_mask_pos(&match_unit, pos));
-    if(pos != -1)
-        write_output(dummy_action_set);
-
-    //search mask 2 entry 3
-    pos = search_flow(&match_unit, dummy_flow_entry_2, dummy_action_set, mask_pos);
-    printf("%d %d\n", pos, get_mask_pos(&match_unit, pos));
-    if(pos != -1)
-        write_output(dummy_action_set);
-
-    //search mask 2 entry 2
-    pos = search_flow(&match_unit, dummy_flow_entry_3, dummy_action_set, mask_pos);
-    printf("%d %d\n", pos, get_mask_pos(&match_unit, pos));
-    if(pos != -1)
-        write_output(dummy_action_set);
-
-    /*uint8_t flag_modification[2];
+    uint8_t flag_modification[2];
     flag_modification[0] = 64;
     flag_modification[1] = 9;
 
@@ -109,10 +91,19 @@ int main(){
         printf("%d\t", new_action_val[i]);
     }
 
+    //modify flow entry 3 of mask 2
     modify_entry(&match_unit, dummy_flow_entry_2, flag_modification, new_action_val);
+    printf("\n-----");
     output_all_actions(&match_unit);
     output_all_flow_entries(&match_unit);
-    output_flags(&match_unit);*/
+    output_flags(&match_unit);
+
+    //search and apply actions to mask 2 flow 3
+    //printf("\n%d %d", flow_cache[CACHE_SIZE - 1][0], flow_cache[CACHE_SIZE - 1][1]);
+    apply_action(&match_unit, dummy_flow_entry_2);
+    printf("\n-----");
+    //printf("\n%d %d", flow_cache[CACHE_SIZE - 1][0], flow_cache[CACHE_SIZE - 1][1]);
+    apply_action(&match_unit, dummy_flow_entry_2);
 
     return 0;
 
