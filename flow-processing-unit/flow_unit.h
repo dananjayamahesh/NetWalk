@@ -35,32 +35,38 @@ int flow_cache[CACHE_SIZE][2];
 //cache top points to the most recent entry to the cache
 int cache_top;
 
+//-----------------------------FUNCTION DEFINITIONS-------------------------------------------------------
 void init();
 
 void write_new_mask(tcam_unit * tcam, uint8_t mask[]);
 void write_new_flow_entry(tcam_unit * tcam, uint8_t flow_entry[]);
 void write_new_action(tcam_unit * tcam, uint8_t action_set[], uint8_t flag[], int pos);
 
-void delete_restructure_mask(tcam_unit * tcam, int pos);
 void restructure_flow_table(tcam_unit * tcam, int pos);
-void delete_restructure_flow(tcam_unit * tcam, int pos);
 void restructure_action_tables(tcam_unit * flow_unit, int pos);
-void delete_restructure_action(tcam_unit * flow_unit, int pos);
 
-int search_within_mask_group(tcam_unit * tcam, uint8_t mask[], uint8_t flow_entry[], int mask_group_start);
-int locate_mask_group(tcam_unit * tcam, int mask_no);
 int get_mask_pos(tcam_unit * tcam, int pos);
-int search_tcam(tcam_unit * tcam, uint8_t new_flow[], int mask_pos[]);
-int search_flow(tcam_unit * flow_unit, uint8_t new_flow[], uint8_t action_set[], int mask_pos[]);
+int locate_mask_group(tcam_unit * tcam, int mask_no);
+int search_within_mask_group(tcam_unit * tcam, uint8_t mask[], uint8_t flow_entry[], int mask_group_start);
+
 int add_new_flow_entry(tcam_unit * tcam, uint8_t mask[], uint8_t flow_entry[]);
 
-int add_new_entry(tcam_unit * flow_unit, uint8_t mask[], uint8_t flow_entry[], uint8_t action_set[], uint8_t flag[]);
-int modify_entry(tcam_unit * tcam, uint8_t match_fields[], uint8_t flag[], uint8_t new_values[]);
-int delete_flow_entry(tcam_unit * tcam, uint8_t flow_entry[]);
-
 int search_cache(uint8_t flow[], tcam_unit * tcam, uint8_t actions[]);
+int search_tcam(tcam_unit * tcam, uint8_t new_flow[], int mask_pos[]);
+int search_flow(tcam_unit * flow_unit, uint8_t new_flow[], uint8_t action_set[], int mask_pos[]);
 
-int apply_action(tcam_unit * tcam, uint8_t new_flow[]);
+void delete_restructure_mask(tcam_unit * tcam, int pos);
+void delete_restructure_flow(tcam_unit * tcam, int pos);
+void delete_restructure_action(tcam_unit * flow_unit, int pos);
+
+//functions to be used when interacting with the flow unit
+int add_new_entry(tcam_unit * flow_unit, uint8_t mask[], uint8_t flow_entry[], uint8_t action_set[], uint8_t flag[]);
+int delete_flow_entry(tcam_unit * tcam, uint8_t flow_entry[]);
+int modify_entry(tcam_unit * tcam, uint8_t match_fields[], uint8_t flag[], uint8_t new_values[]);
+int apply_action(tcam_unit * tcam, uint8_t new_flow[] /*relevant packet also needed*/);
+
+
+//-----------------------------FUNCTION IMPLEMENTATIONS---------------------------------------------------
 
 //initializes the cache memory
 //should be called before using any other function
@@ -131,23 +137,6 @@ void write_new_action(tcam_unit * tcam, uint8_t action_set[], uint8_t flag[], in
     tcam -> flag_table[2 * pos + 1] = flag[1];
 }
 
-//delete a mask from the mask table; position of the mask to be deleted is given by pos
-//masks after the deleted mask are moved up by one position
-//that is, there are no blank spaces inside the table, other than at the end
-void delete_restructure_mask(tcam_unit * tcam, int pos){
-    uint8_t dummy_mask[MTCH_FLD_LEN];
-    uint8_t i;
-    int mask_tail_old = tcam -> mask_tail;
-    tcam -> mask_tail = pos;
-    //moves the entries after the deleted mask up by one
-    while(tcam -> mask_tail < mask_tail_old - 1){
-        for(i = 0; i < MTCH_FLD_LEN; i++)
-            dummy_mask[i] = tcam -> mask_table[(tcam -> mask_tail + 1) * MTCH_FLD_LEN + i];
-        write_new_mask(tcam, dummy_mask);
-    }
-    tcam -> mask_tail = mask_tail_old - 1;
-}
-
 //to be used when we need to insert a new entry to an existing mask which is not the last mask in the mask table
 //here we have to move all the flow entries that does not belong to the said mask and comes after thet mask's group in the flow table down by 1
 void restructure_flow_table(tcam_unit * tcam, int pos){
@@ -179,38 +168,41 @@ void restructure_action_tables(tcam_unit * flow_unit, int pos){
     }
 }
 
-//to be used to delete a flow entry
-//all the flow entries coming after are moved up buy one
-//pos gives the position of the flow entry which is to be deleted
-void delete_restructure_flow(tcam_unit * tcam, int pos){
-    uint8_t dummy_flow[FLW_ENT_LEN];
-    uint8_t i;
-    int flow_tail_old = tcam -> flow_tail;
-    tcam -> flow_tail = pos;
-    while(tcam -> flow_tail < flow_tail_old - 1){
-        for(i = 0; i < FLW_ENT_LEN; i++)
-            dummy_flow[i] = tcam -> flow_table[(tcam -> flow_tail + 1) * FLW_ENT_LEN + i];
-        write_new_flow_entry(tcam, dummy_flow);
+//get the position of the mask that the flow entry belongs to
+//flow entry is given by its position in the flow table
+int get_mask_pos(tcam_unit * tcam, int pos){
+    int mask_pos = 0;
+    int i = 0;
+    while(i < tcam -> flow_tail && i <= pos){
+        if(read_bit(tcam -> flow_table, (i * FLW_ENT_LEN + 44) * 8 + 4))
+            mask_pos++;
+        i++;
     }
-    tcam -> flow_tail = flow_tail_old - 1;
+    return mask_pos;
 }
 
-//same as the one above; deletes the action set and flag of the flow entry deleted
-//entries coming after are moved up by one
-//action will always be deleted after the flow entry
-void delete_restructure_action(tcam_unit * flow_unit, int pos){
-    uint8_t dummy_action[ACTN_ST_LEN];
-    uint8_t dummy_flag[2];
-    uint8_t i;
-    int j = pos;
-    while(j < flow_unit -> flow_tail){
-        for(i = 0; i < ACTN_ST_LEN; i++)
-            dummy_action[i] = flow_unit -> action_table[(j + 1) * ACTN_ST_LEN + i];
-        dummy_flag[0] = flow_unit -> flag_table[2 * (j + 1)];
-        dummy_flag[1] = flow_unit -> flag_table[2 * (j + 1) + 1];
-        write_new_action(flow_unit, dummy_action, dummy_flag, j);
-        j++;
+//used to locate the first entry in a group of entries belonging to a mask(given by its position in the mask table as 'mask_no')
+int locate_mask_group(tcam_unit * tcam, int mask_no){
+    if(mask_no == 0)
+        return 0;
+    int k, i;
+    k = 0;
+    i = 0;
+    while(i < tcam -> flow_tail){
+        //checks for first entries of mask groups
+        //indicated by having a high bit at that particular position
+        if(read_bit(tcam -> flow_table, (i * FLW_ENT_LEN + 44) * 8 + 4)){
+            k++;
+            if(k == mask_no)
+                break;
+        }
+        i++;
     }
+    if(i == tcam -> flow_tail)
+        //no group for an existing mask
+        return STR_ERR;
+    //return the index of the starting entry of that mask's group
+    return i;
 }
 
 //to be used when writing a new entry to the TCAM
@@ -243,30 +235,6 @@ int search_within_mask_group(tcam_unit * tcam, uint8_t mask[], uint8_t flow_entr
         k = 0;
         i++;
     }while(read_bit(tcam -> flow_table, (i * FLW_ENT_LEN + 44) * 8 + 4) == 0 && i < tcam -> flow_tail);
-    return i;
-}
-
-//used to locate the first entry in a group of entries belonging to a mask(given by its position in the mask table as 'mask_no')
-int locate_mask_group(tcam_unit * tcam, int mask_no){
-    if(mask_no == 0)
-        return 0;
-    int k, i;
-    k = 0;
-    i = 0;
-    while(i < tcam -> flow_tail){
-        //checks for first entries of mask groups
-        //indicated by having a high bit at that particular position
-        if(read_bit(tcam -> flow_table, (i * FLW_ENT_LEN + 44) * 8 + 4)){
-            k++;
-            if(k == mask_no)
-                break;
-        }
-        i++;
-    }
-    if(i == tcam -> flow_tail)
-        //no group for an existing mask
-        return STR_ERR;
-    //return the index of the starting entry of that mask's group
     return i;
 }
 
@@ -326,21 +294,43 @@ int add_new_flow_entry(tcam_unit * tcam, uint8_t mask[], uint8_t flow_entry[]){
     return tcam -> flow_tail - 1;
 }
 
-//function to add a new entry
-//flow entry, mask, action set, flag all need to be given
-int add_new_entry(tcam_unit * flow_unit, uint8_t mask[], uint8_t flow_entry[], uint8_t action_set[], uint8_t flag[]){
-    //first add the flow entry to the flow table
-    //if mask is a new one that is added to the mask table as well
-    int pos = add_new_flow_entry(flow_unit, mask, flow_entry);
-    //tcam side errors; tables full or flow entry redundant
-    if(pos == TBL_FULL || pos == RDNDNT)
-        return pos;
-    //add the action set and flag to respective tables
-    //restructure those tables if necessary
-    if(pos < flow_unit -> flow_tail - 1)
-        restructure_action_tables(flow_unit, pos);
-    write_new_action(flow_unit, action_set, flag, pos);
-    return pos;
+//function to search the cache which has the indexes of the most recently matched flow entries
+int search_cache(uint8_t flow[], tcam_unit * tcam, uint8_t actions[]){
+    int i, j, k, l;
+    int p;
+    int match_no = -1;
+
+    if(cache_top > 1){
+        for(l = cache_top; l > 0; l--){
+            k = 0;
+            for(i = 0; i < MTCH_FLD_LEN; i++){
+                //try matching the flow with an entry in the cache
+                for(j = 0; j < 8; j++){
+                    if(read_bit(tcam -> mask_table, (flow_cache[CACHE_SIZE - l][0] * MTCH_FLD_LEN + i) * 8 + j)){
+                        if(read_bit(flow, i * 8 + j) != read_bit(tcam -> flow_table, (flow_cache[CACHE_SIZE - l][1] * FLW_ENT_LEN + i) * 8 + j)){
+                            k++;
+                            break;
+                        }
+                    }
+                }
+                if(k == 1)
+                    break;
+            }
+            if(k == 0){
+                tcam -> flow_table[(flow_cache[CACHE_SIZE - l][1] * FLW_ENT_LEN) + 46] = tcam -> flow_table[(flow_cache[CACHE_SIZE - l][1] * FLW_ENT_LEN) + 46] + 1;
+                //compare priorities
+                if(match_no >= 0){
+                    if(tcam -> flow_table[(match_no * FLW_ENT_LEN) + 45] < tcam -> flow_table[(flow_cache[CACHE_SIZE - l][1] * FLW_ENT_LEN) + 45]){
+                        match_no = flow_cache[CACHE_SIZE - l][1];
+                    }
+                }
+                else{
+                    match_no = flow_cache[CACHE_SIZE - l][1];
+                }
+            }
+        }
+    }
+    return match_no;
 }
 
 //function to search for a specific flow entry(new_flow) in the given TCAM
@@ -420,6 +410,98 @@ int search_flow(tcam_unit * flow_unit, uint8_t new_flow[], uint8_t action_set[],
         cache_top = 1;
     }
     return pos;
+}
+
+//delete a mask from the mask table; position of the mask to be deleted is given by pos
+//masks after the deleted mask are moved up by one position
+//that is, there are no blank spaces inside the table, other than at the end
+void delete_restructure_mask(tcam_unit * tcam, int pos){
+    uint8_t dummy_mask[MTCH_FLD_LEN];
+    uint8_t i;
+    int mask_tail_old = tcam -> mask_tail;
+    tcam -> mask_tail = pos;
+    //moves the entries after the deleted mask up by one
+    while(tcam -> mask_tail < mask_tail_old - 1){
+        for(i = 0; i < MTCH_FLD_LEN; i++)
+            dummy_mask[i] = tcam -> mask_table[(tcam -> mask_tail + 1) * MTCH_FLD_LEN + i];
+        write_new_mask(tcam, dummy_mask);
+    }
+    tcam -> mask_tail = mask_tail_old - 1;
+}
+
+//to be used to delete a flow entry
+//all the flow entries coming after are moved up buy one
+//pos gives the position of the flow entry which is to be deleted
+void delete_restructure_flow(tcam_unit * tcam, int pos){
+    uint8_t dummy_flow[FLW_ENT_LEN];
+    uint8_t i;
+    int flow_tail_old = tcam -> flow_tail;
+    tcam -> flow_tail = pos;
+    while(tcam -> flow_tail < flow_tail_old - 1){
+        for(i = 0; i < FLW_ENT_LEN; i++)
+            dummy_flow[i] = tcam -> flow_table[(tcam -> flow_tail + 1) * FLW_ENT_LEN + i];
+        write_new_flow_entry(tcam, dummy_flow);
+    }
+    tcam -> flow_tail = flow_tail_old - 1;
+}
+
+//same as the one above; deletes the action set and flag of the flow entry deleted
+//entries coming after are moved up by one
+//action will always be deleted after the flow entry
+void delete_restructure_action(tcam_unit * flow_unit, int pos){
+    uint8_t dummy_action[ACTN_ST_LEN];
+    uint8_t dummy_flag[2];
+    uint8_t i;
+    int j = pos;
+    while(j < flow_unit -> flow_tail){
+        for(i = 0; i < ACTN_ST_LEN; i++)
+            dummy_action[i] = flow_unit -> action_table[(j + 1) * ACTN_ST_LEN + i];
+        dummy_flag[0] = flow_unit -> flag_table[2 * (j + 1)];
+        dummy_flag[1] = flow_unit -> flag_table[2 * (j + 1) + 1];
+        write_new_action(flow_unit, dummy_action, dummy_flag, j);
+        j++;
+    }
+}
+
+//--------------------------------FUNCTIONS FOR INTERACTING WITH THE FLOW UNIT---------------------------------------------
+
+//function to add a new entry
+//flow entry, mask, action set, flag all need to be given
+int add_new_entry(tcam_unit * flow_unit, uint8_t mask[], uint8_t flow_entry[], uint8_t action_set[], uint8_t flag[]){
+    //first add the flow entry to the flow table
+    //if mask is a new one that is added to the mask table as well
+    int pos = add_new_flow_entry(flow_unit, mask, flow_entry);
+    //tcam side errors; tables full or flow entry redundant
+    if(pos == TBL_FULL || pos == RDNDNT)
+        return pos;
+    //add the action set and flag to respective tables
+    //restructure those tables if necessary
+    if(pos < flow_unit -> flow_tail - 1)
+        restructure_action_tables(flow_unit, pos);
+    write_new_action(flow_unit, action_set, flag, pos);
+    return pos;
+}
+
+//delete an existing flow entry
+int delete_flow_entry(tcam_unit * tcam, uint8_t flow_entry[]){
+    int mask[2];
+    //get the position of the flow entry
+    int flow_pos = search_tcam(tcam, flow_entry, mask);
+    int mask_pos;
+    //Entry to be deleted is the only entry in its mask group
+    //then we need to fnd the mask and delete that too
+    if(read_bit(tcam -> flow_table, (flow_pos * FLW_ENT_LEN + 44) * 8 + 4) && (flow_pos == tcam -> flow_tail - 1 || read_bit(tcam -> flow_table, ((flow_pos + 1) * FLW_ENT_LEN + 44) * 8 + 4))){
+        mask_pos = get_mask_pos(tcam, flow_pos);
+        delete_restructure_mask(tcam, mask_pos);
+    }
+    //Entry to delete is the first (not the only) entry in its mask group
+    if(read_bit(tcam -> flow_table, (flow_pos * FLW_ENT_LEN + 44) * 8 + 4) && !read_bit(tcam -> flow_table, ((flow_pos + 1) * FLW_ENT_LEN + 44) * 8 + 4))
+        //Have to make the second entry the first entry
+        set_bit(tcam -> flow_table, ((flow_pos + 1) * FLW_ENT_LEN + 44) * 8 + 4);
+    //delete and restructure flow table and action tables
+    delete_restructure_flow(tcam, flow_pos);
+    delete_restructure_action(tcam, flow_pos);
+    return flow_pos;
 }
 
 //modifies an existing entry in the TCAM
@@ -559,82 +641,6 @@ int modify_entry(tcam_unit * tcam, uint8_t match_fields[], uint8_t flag[], uint8
     tcam -> flag_table[2 * pos + 1] = (tcam -> flag_table[2 * pos + 1]) | flag[1];
     //return the position of the modified entry
     return pos;
-}
-
-//get the position of the mask that the flow entry belongs to
-//flow entry is given by its position in the flow table
-//tried adding an int field to the structure to save computational time, but it doesn't work
-//Using more than 2 int fields in the structure doesn't work
-int get_mask_pos(tcam_unit * tcam, int pos){
-    int mask_pos = 0;
-    int i = 0;
-    while(i < tcam -> flow_tail && i <= pos){
-        if(read_bit(tcam -> flow_table, (i * FLW_ENT_LEN + 44) * 8 + 4))
-            mask_pos++;
-        i++;
-    }
-    return mask_pos;
-}
-
-//delete an existing flow entry
-int delete_flow_entry(tcam_unit * tcam, uint8_t flow_entry[]){
-    int mask[2];
-    //get the position of the flow entry
-    int flow_pos = search_tcam(tcam, flow_entry, mask);
-    int mask_pos;
-    //Entry to be deleted is the only entry in its mask group
-    //then we need to fnd the mask and delete that too
-    if(read_bit(tcam -> flow_table, (flow_pos * FLW_ENT_LEN + 44) * 8 + 4) && (flow_pos == tcam -> flow_tail - 1 || read_bit(tcam -> flow_table, ((flow_pos + 1) * FLW_ENT_LEN + 44) * 8 + 4))){
-        mask_pos = get_mask_pos(tcam, flow_pos);
-        delete_restructure_mask(tcam, mask_pos);
-    }
-    //Entry to delete is the first (not the only) entry in its mask group
-    if(read_bit(tcam -> flow_table, (flow_pos * FLW_ENT_LEN + 44) * 8 + 4) && !read_bit(tcam -> flow_table, ((flow_pos + 1) * FLW_ENT_LEN + 44) * 8 + 4))
-        //Have to make the second entry the first entry
-        set_bit(tcam -> flow_table, ((flow_pos + 1) * FLW_ENT_LEN + 44) * 8 + 4);
-    //delete and restructure flow table and action tables
-    delete_restructure_flow(tcam, flow_pos);
-    delete_restructure_action(tcam, flow_pos);
-    return flow_pos;
-}
-
-//function to search the cache which has the indexes of the most recently matched flow entries
-int search_cache(uint8_t flow[], tcam_unit * tcam, uint8_t actions[]){
-    int i, j, k, l;
-    int p;
-    int match_no = -1;
-
-    if(cache_top > 1){
-        for(l = cache_top; l > 0; l--){
-            k = 0;
-            for(i = 0; i < MTCH_FLD_LEN; i++){
-                //try matching the flow with an entry in the cache
-                for(j = 0; j < 8; j++){
-                    if(read_bit(tcam -> mask_table, (flow_cache[CACHE_SIZE - l][0] * MTCH_FLD_LEN + i) * 8 + j)){
-                        if(read_bit(flow, i * 8 + j) != read_bit(tcam -> flow_table, (flow_cache[CACHE_SIZE - l][1] * FLW_ENT_LEN + i) * 8 + j)){
-                            k++;
-                            break;
-                        }
-                    }
-                }
-                if(k == 1)
-                    break;
-            }
-            if(k == 0){
-                tcam -> flow_table[(flow_cache[CACHE_SIZE - l][1] * FLW_ENT_LEN) + 46] = tcam -> flow_table[(flow_cache[CACHE_SIZE - l][1] * FLW_ENT_LEN) + 46] + 1;
-                //compare priorities
-                if(match_no >= 0){
-                    if(tcam -> flow_table[(match_no * FLW_ENT_LEN) + 45] < tcam -> flow_table[(flow_cache[CACHE_SIZE - l][1] * FLW_ENT_LEN) + 45]){
-                        match_no = flow_cache[CACHE_SIZE - l][1];
-                    }
-                }
-                else{
-                    match_no = flow_cache[CACHE_SIZE - l][1];
-                }
-            }
-        }
-    }
-    return match_no;
 }
 
 //function to search for a given flow(new_flow)
